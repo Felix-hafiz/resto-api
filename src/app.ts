@@ -12,5 +12,5 @@ app.use('/api/', menuRoute)
 
 app.use('*', (req, res) => {
     // development
-    res.status(404).send(`use /api/`)
+    res.status(404).send('use /api/')
 })
