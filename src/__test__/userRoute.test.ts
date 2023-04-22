@@ -85,4 +85,44 @@ describe('Single User Routes', () => {
             expect(res.statusCode).toEqual(400)
         })
     })
+
+    describe('PUT user', () => {
+        it('should return 200', async () => {
+            const res = await request(app)
+                .put('/api/users/123abc')
+                .send({ name: 'changed name' })
+            expect(res.statusCode).toEqual(200)
+        })
+
+        it('should return 404', async () => {
+            const res = await request(app)
+                .put('/api/users/0000xxxxx')
+                .send({ name: 'changed name' })
+            expect(res.statusCode).toEqual(404)
+            expect(res.body).toMatchObject({ message: 'user Not Found!' })
+        })
+        it('should return 400', async () => {
+            const res = await request(app)
+                .put('/api/users/123abc')
+                .send({ name: 1212222 })
+            expect(res.statusCode).toEqual(400)
+            expect(res.body).toMatchObject({ message: 'Invalid input' })
+        })
+    })
+
+    describe('DELETE user', () => {
+        it('should return 200', async () => {
+            const res = await request(app).delete('/api/users/123abc')
+            expect(res.statusCode).toEqual(200)
+            expect(res.body).toMatchObject({
+                message: 'SUCCESS - deleting user',
+            })
+        })
+
+        it('should return 404', async () => {
+            const res = await request(app).put('/api/users/0000xxx')
+            expect(res.statusCode).toEqual(404)
+            expect(res.body).toMatchObject({ message: 'user Not Found!' })
+        })
+    })
 })
