@@ -1,12 +1,13 @@
 import express, { Request, Response } from 'express'
-// import User from '../models/userModel'
+import User from '../models/userModel'
 
 const router = express.Router()
 
 router
-    .route('/user')
+    .route('/users/')
     .get(async (req: Request, res: Response) => {
-        res.send('user get route')
+        const data = await User.find()
+        res.send(data)
     })
     .put(async (req: Request, res: Response) => {
         res.send('user put route')
