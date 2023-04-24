@@ -7,7 +7,7 @@ export const app: Application = express()
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 
-app.use('/api/', userRoute)
+app.use('/api/v1', userRoute)
 app.use('/api/', menuRoute)
 
 app.use('*', (req, res) => {
