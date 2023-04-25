@@ -9,11 +9,10 @@ router
         const data = await User.find()
         res.send(data)
     })
-    .put(async (req: Request, res: Response) => {
-        res.send('user put route')
-    })
-    .post((req: Request, res: Response) => {
-        res.send('user post route')
+    .post(async (req: Request, res: Response) => {
+        const { name } = req.body
+        const data = await User.create({ name })
+        res.status(201).send(data)
     })
     .delete(async (req: Request, res: Response) => {
         res.send('user delete route')
