@@ -1,9 +1,8 @@
 import mongoose from 'mongoose'
-
 ;(async () => {
     try {
         await mongoose.connect(
-            process.env.MONGODB_URI || 'mongodb://127.0.0:27017'
+            `${process.env.MONGODB_URI}/${process.env.MONGODB_DB_NAME} || 'mongodb://127.0.0:27017`
         )
         // eslint-disable-next-line no-console
         console.info('db connected')
