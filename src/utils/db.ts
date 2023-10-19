@@ -1,13 +1,16 @@
 import mongoose from 'mongoose'
+import logger from './logger'
 ;(async () => {
     try {
-        await mongoose.connect(
-            `${process.env.MONGODB_URI}/${process.env.MONGODB_DB_NAME} || 'mongodb://127.0.0:27017`
-        )
-        // eslint-disable-next-line no-console
-        console.info('db connected')
+        await mongoose.connect(`${process.env.MONGODB_URI}`, {
+            serverSelectionTimeoutMS: 5000,
+            bufferCommands: false,
+            dbName: process.env.MONGODB_DB_NAME,
+        })
+        logger.info('db connected')
     } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(`mongodb unConnected!!!, Error:${error}`)
+        mongoose.disconnect()
+        logger.error('mongodb unConnected!!!')
+        process.exit(0)
     }
 })()
