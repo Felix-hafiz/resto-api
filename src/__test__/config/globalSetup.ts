@@ -15,6 +15,6 @@ export default async function globalSetup() {
     }
 
     await mongoose.connect(`${process.env.MONGODB_URI}/${config.Database}`)
-    await mongoose.connection.db.dropDatabase()
+    await mongoose.connection.dropDatabase()
     await mongoose.disconnect()
 }
