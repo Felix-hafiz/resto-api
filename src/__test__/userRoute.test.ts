@@ -5,65 +5,84 @@ import request from 'supertest'
 import { app } from '../app'
 
 const url = '/api/v1/users'
+let token: string
+let userId: string
+
+const usersBody = {
+    name: 'hafiz',
+    email: process.env.ADMIN_EMAIL,
+    password: 'rahasia',
+}
+
+beforeAll(async () => {
+    await request(app)
+        .post('/api/v1/register')
+        .send({ name: 'udin', email: 'udin@gmail.com', password: '123' })
+
+    const user = await request(app).post('/api/v1/register').send(usersBody)
+    const res = await request(app)
+        .post('/api/v1/login')
+        .send({ email: usersBody.email, password: usersBody.password })
+    token = res.body.data.token
+    userId = user.body.data._id
+})
 
 describe('Users Routes', () => {
-    it('should return match object', async () => {
-        const res = await request(app).get(url)
-        const usersBody = [
-            {
-                name: 'hafiz',
-                email: 'hafiz@gmail.com',
-                password: 'dsdsdsdsd',
-            },
-        ]
+    it('should return array of data even it empty', async () => {
+        const res = await request(app).get(url).auth(token, { type: 'bearer' })
 
         expect(res.statusCode).toEqual(200)
-        expect(res.body).toMatchObject(usersBody)
+        expect(res.body.data).toBeDefined()
+        expect(res.body.data).toBeInstanceOf(Array)
     })
 
     it('should return authentication error message', async () => {
-        const errorMsg = {
-            message: 'access denied',
-        }
+        const responseLogin = await request(app)
+            .post('/api/v1/login')
+            .send({ email: 'udin@gmail.com', password: '123' })
 
-        const res = await request(app).get(url)
+        const token = responseLogin.body.data.token
+
+        const res = await request(app).get(url).auth(token, { type: 'bearer' })
 
         expect(res.statusCode).toEqual(403)
-        expect(res.body).toMatchObject(errorMsg)
+        expect(res.body.error.message).toBeDefined()
     })
 })
 
 describe('Single User Routes', () => {
     describe('GET user', () => {
         it('should return authentication error message', async () => {
-            const errorMsg = {
-                message: 'access denied',
-            }
+            const responseLogin = await request(app)
+                .post('/api/v1/login')
+                .send({ email: 'udin@gmail.com', password: '123' })
 
-            const res = await request(app).get(`${url}/123abc`)
+            const token = responseLogin.body.data.token
+
+            const res = await request(app)
+                .get(`${url}/${userId}`)
+                .auth(token, { type: 'bearer' })
 
             expect(res.statusCode).toEqual(403)
-            expect(res.body).toMatchObject(errorMsg)
+            expect(res.body.error.message).toBeDefined()
         })
 
-        it('should return match object', async () => {
-            const id = '123abc'
-            const res = await request(app).get(`${url}/123abc`)
-            const userBody = {
-                id,
-                name: 'hafiz',
-                email: 'hafiz@gmail.com',
-                password: 'dsdsdsdsd',
-            }
+        it('should return single match object', async () => {
+            const res = await request(app)
+                .get(`${url}/${userId}`)
+                .auth(token, { type: 'bearer' })
 
             expect(res.statusCode).toEqual(200)
-            expect(res.body).toMatchObject(userBody)
-            expect(res.body.id).toEqual(userBody.id)
+            expect(res.body.data).toBeDefined()
+            expect(res.body.data.password).toBeUndefined()
+            expect(res.body.data._id).toEqual(userId)
         })
 
         it('should return error not found users', async () => {
-            const res = await request(app).get(`${url}/000xxx`)
-            expect(res.body).toMatchObject({ message: 'Not Found users!' })
+            const res = await request(app)
+                .get(`${url}/000xxx`)
+                .auth(token, { type: 'bearer' })
+            expect(res.body.error).toBeDefined()
             expect(res.statusCode).toEqual(404)
         })
     })
@@ -71,71 +90,106 @@ describe('Single User Routes', () => {
     describe('POST user', () => {
         it('should return 201', async () => {
             const userBody = {
-                name: 'hafiz',
-                email: 'hafiz@gmail.com',
+                name: 'asep',
+                email: 'asep@gmail.com',
                 password: 'dsdsdsdsd',
             }
 
-            const res = await request(app).post(url).send(userBody)
+            const res = await request(app)
+                .post(url)
+                .send(userBody)
+                .auth(token, { type: 'bearer' })
 
-            expect(res.body).toMatchObject({
-                message: 'Created!',
-                data: userBody,
-            })
+            expect(res.body.data).toBeDefined()
+            expect(res.body.data.password).toBeUndefined()
             expect(res.statusCode).toEqual(201)
         })
 
-        it('should return error invalid input', async () => {
-            const res = await request(app)
-                .post(url)
-                .send({ name: 123, email: 131333, password: 1311 })
+        it.each([
+            { name: 123, email: 123, password: 123 },
+            {
+                name: 123,
+                email: 'hafiz@gmail.com',
+                password: 123,
+            },
+            { name: 'felix', email: 123, password: 123 },
+        ])(
+            'should return error invalid input',
+            async ({ name, email, password }) => {
+                const res = await request(app)
+                    .post(url)
+                    .send({ name, email, password })
+                    .auth(token, { type: 'bearer' })
 
-            expect(res.body).toMatchObject({ message: 'Invalid input' })
-            expect(res.statusCode).toEqual(400)
-        })
+                expect(res.body.error).toBeDefined()
+                expect(res.statusCode).toEqual(400)
+            },
+        )
     })
 
     describe('PUT user', () => {
-        it('should return success', async () => {
+        it.each([
+            { name: 'changed name' },
+            { email: 'hafizChange@gmail.com' },
+            { password: 'rahasisssaaaa' },
+            { name: 'changed name', email: 'hafizChange@gmail.com' },
+            {
+                name: 'changed name',
+                email: 'hafizChange@gmail.com',
+                password: 'rahasisaaaa',
+            },
+            { password: 'rahasisaaaa', email: 'hafizChange@gmail.com' },
+        ])('should return success', async ({ name, email, password }) => {
             const res = await request(app)
-                .put(`${url}/123abc`)
-                .send({ name: 'changed name' })
+                .put(`${url}/${userId}`)
+                .send({ name, email, password })
+                .auth(token, { type: 'bearer' })
 
             expect(res.statusCode).toEqual(200)
-            expect(res.body).toMatchObject({
-                message: 'SUCCESS - upadated user',
-            })
+            expect(res.body.data.password).toBeUndefined()
+            expect(res.body.data).toBeDefined()
         })
 
         it('should return 404', async () => {
             const res = await request(app)
                 .put(`${url}/000xxx`)
                 .send({ name: 'changed name' })
+                .auth(token, { type: 'bearer' })
             expect(res.statusCode).toEqual(404)
-            expect(res.body).toMatchObject({ message: 'user Not Found!' })
+            expect(res.body.error.message).toBeDefined()
         })
-        it('should return 400', async () => {
+
+        it.each([
+            { name: 123 },
+            { email: 123 },
+            { name: '12313', email: 1313 },
+            { name: 1231, email: 'tetst@gmail.com' },
+        ])('should return 400, when invalid value', async ({ name, email }) => {
             const res = await request(app)
-                .put(`${url}/123abc`)
-                .send({ name: 1212222 })
+                .put(`${url}/${userId}`)
+                .send({ name, email })
+                .auth(token, { type: 'bearer' })
             expect(res.statusCode).toEqual(400)
-            expect(res.body).toMatchObject({ message: 'Invalid input' })
+            expect(res.body.error).toBeDefined()
         })
     })
 
     describe('DELETE user', () => {
-        it('should return success', async () => {
-            const res = await request(app).delete(`${url}/123abc`)
-            expect(res.statusCode).toEqual(200)
-            expect(res.body).toMatchObject({
-                message: 'SUCCESS - deleting user',
-            })
+        it('should return 404', async () => {
+            const res = await request(app)
+                .delete(`${url}/000xxx`)
+                .auth(token, { type: 'bearer' })
+            expect(res.statusCode).toEqual(404)
+            expect(res.body.error.message).toBeDefined()
         })
 
-        it('should return 404', async () => {
-            const res = await request(app).put(`${url}/000xxx`)
-            expect(res.statusCode).toEqual(404)
-            expect(res.body).toMatchObject({ message: 'user Not Found!' })
+        it('should return success', async () => {
+            const res = await request(app)
+                .delete(`${url}/${userId}`)
+                .auth(token, { type: 'bearer' })
+            expect(res.statusCode).toEqual(200)
+            expect(res.body.data).toBeUndefined()
+            expect(res.body.message).toBeDefined()
         })
     })
 })
