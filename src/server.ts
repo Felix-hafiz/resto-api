@@ -4,8 +4,8 @@ dotenv.config()
 import { app } from './app'
 
 import './utils/db'
+import logger from './utils/logger'
 
 app.listen(process.env.PORT, () => {
-    // eslint-disable-next-line no-console
-    console.info('running')
+    logger.info('running')
 })
