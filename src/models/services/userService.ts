@@ -2,8 +2,15 @@ import { HttpError } from '../../utils/errorHandler'
 import userModel from '../userModel'
 
 export async function createUser(payload: IUser) {
-    const data = await userModel.create(payload)
+    const data = await userModel.create(payload).catch((err) => {
+        // duplicate key
+        if (err.code === 11000) {
+            throw new HttpError('cannot create user: ' + err, 400)
+        }
+        throw new Error(err.message)
+    })
     data.$set('password', undefined)
+
     return { data }
 }
 

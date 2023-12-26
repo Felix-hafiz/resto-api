@@ -48,6 +48,11 @@ describe('Users Routes', () => {
         expect(res.statusCode).toEqual(403)
         expect(res.body.error.message).toBeDefined()
     })
+
+    it('should return Error when token not given', async () => {
+        const res = await request(app).get(url)
+        expect(res.statusCode).toEqual(401)
+    })
 })
 
 describe('Single User Routes', () => {
@@ -80,8 +85,17 @@ describe('Single User Routes', () => {
 
         it('should return error not found users', async () => {
             const res = await request(app)
-                .get(`${url}/000xxx`)
+                .get(`${url}/123456789012345678901234`)
                 .auth(token, { type: 'bearer' })
+            expect(res.body.error).toBeDefined()
+            expect(res.statusCode).toEqual(404)
+        })
+
+        it('should return error when id is not valid mongo id', async () => {
+            const res = await request(app)
+                .get(`${url}/123`)
+                .auth(token, { type: 'bearer' })
+
             expect(res.body.error).toBeDefined()
             expect(res.statusCode).toEqual(404)
         })
@@ -125,6 +139,16 @@ describe('Single User Routes', () => {
                 expect(res.statusCode).toEqual(400)
             },
         )
+
+        it('should return error when duplicate email', async () => {
+            const res = await request(app)
+                .post(url)
+                .send(usersBody)
+                .auth(token, { type: 'bearer' })
+
+            expect(res.body.error).toBeDefined()
+            expect(res.statusCode).toEqual(400)
+        })
     })
 
     describe('PUT user', () => {
@@ -152,7 +176,7 @@ describe('Single User Routes', () => {
 
         it('should return 404', async () => {
             const res = await request(app)
-                .put(`${url}/000xxx`)
+                .put(`${url}/123456789012345678901234`)
                 .send({ name: 'changed name' })
                 .auth(token, { type: 'bearer' })
             expect(res.statusCode).toEqual(404)
@@ -177,7 +201,7 @@ describe('Single User Routes', () => {
     describe('DELETE user', () => {
         it('should return 404', async () => {
             const res = await request(app)
-                .delete(`${url}/000xxx`)
+                .delete(`${url}/123456789012345678901234`)
                 .auth(token, { type: 'bearer' })
             expect(res.statusCode).toEqual(404)
             expect(res.body.error.message).toBeDefined()
