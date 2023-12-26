@@ -10,7 +10,7 @@ import logger from './logger'
         logger.info('db connected')
     } catch (error) {
         mongoose.disconnect()
-        logger.error('mongodb unConnected!!!')
+        logger.error(error, 'mongodb unConnected!!!')
         process.exit(0)
     }
 })()

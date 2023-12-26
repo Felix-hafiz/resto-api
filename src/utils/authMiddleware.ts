@@ -6,7 +6,7 @@ import { NextFunction, Request, Response } from 'express'
 export async function authMiddlerware(
     req: Request,
     _res: Response,
-    next: NextFunction
+    next: NextFunction,
 ) {
     const token = req.headers.authorization?.split(' ')[1]
 
@@ -20,7 +20,10 @@ export async function authMiddlerware(
     }
 }
 export function generateToken(payload: Omit<IUser, 'password'>) {
-    return jwt.sign(payload, process.env.SECRET_KEY as Secret, {
+    const token = jwt.sign(payload, process.env.SECRET_KEY as Secret, {
         expiresIn: '30s',
     })
+
+    if (!token) throw new JsonWebTokenError('Json web token failed')
+    return token
 }
