@@ -1,0 +1,13 @@
+services:
+    app:
+        build: .
+        env_file:
+            - .env
+        environment:
+            - MONGODB_URI=mongodb://mongo:27017
+        ports:
+            - '3000:3000'
+        depends_on:
+            - mongo
+    mongo:
+        image: mongo:6.0.1
