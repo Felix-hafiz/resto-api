@@ -20,14 +20,10 @@ export async function add(req: Request, res: Response, next: NextFunction) {
         } else {
             role = 'CUSTOMER'
         }
-        const data = await userService
-            .createUser({
-                ...userPayload,
-                role,
-            })
-            .catch((error) => {
-                throw new HttpError(error.message, 400)
-            })
+        const data = await userService.createUser({
+            ...userPayload,
+            role,
+        })
         res.status(201).json(data)
     } catch (error) {
         next(error)
@@ -47,6 +43,8 @@ export async function getAll(req: Request, res: Response, next: NextFunction) {
 export async function getUser(req: Request, res: Response, next: NextFunction) {
     try {
         if (req.user.role !== 'ADMIN') throw new HttpError('Forbidden', 403)
+        if (!req.params.id) throw new HttpError('ID Not Found', 404)
+
         const data = await userService.getSingleUser(req.params.id)
         res.json(data)
     } catch (error) {
@@ -58,6 +56,8 @@ export async function update(req: Request, res: Response, next: NextFunction) {
     try {
         const userPayload = userPayloadSchema.partial().parse(req.body)
 
+        if (!req.params.id) throw new HttpError('ID Not Found', 404)
+
         const data = await userService.updateUser(req.params.id, userPayload)
 
         res.json(data)
@@ -68,6 +68,8 @@ export async function update(req: Request, res: Response, next: NextFunction) {
 
 export async function remove(req: Request, res: Response, next: NextFunction) {
     try {
+        if (!req.params.id) throw new HttpError('ID Not Found', 404)
+
         const data = await userService.deleteUser(req.params.id)
         res.json(data)
     } catch (error) {
