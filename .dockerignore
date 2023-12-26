@@ -1,6 +1,8 @@
 node_modules
-build
-.env
 coverage
+build
 log
 dist
+.git
+.env
+
