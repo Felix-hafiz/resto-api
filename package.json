@@ -10,6 +10,9 @@
         "start": "node ./build/server.js",
         "dev": "nodemon ./src/server.ts"
     },
+    "engines": {
+        "node": "18.17.1"
+    },
     "nodemonConfig": {
         "ignore": [
             "**/node_modules/*"
