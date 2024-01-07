@@ -10,6 +10,7 @@ export const app: Application = express()
 app.use(
     pinoHttp({
         logger,
+        autoLogging: process.env.NODE_ENV === 'test' ? false : true, // test is default env when running jest
     }),
 )
 
