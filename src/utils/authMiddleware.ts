@@ -21,7 +21,7 @@ export async function authMiddlerware(
 }
 export function generateToken(payload: Omit<IUser, 'password'>) {
     const token = jwt.sign(payload, process.env.SECRET_KEY as Secret, {
-        expiresIn: '30s',
+        expiresIn: process.env.JWT_EXPIRES,
     })
 
     if (!token) throw new JsonWebTokenError('Json web token failed')
