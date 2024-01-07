@@ -7,6 +7,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-20.04
+    env:
+        JWT_EXPIRES: ${{vars.JWT_EXPIRES}}
+        SECRET_KEY: ${{secrets.SECRET_KEY}}
+        ADMIN_EMAIL: ${{secrets.ADMIN_EMAIL}}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
