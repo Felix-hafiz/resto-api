@@ -4,6 +4,7 @@ import authRoute from './routes/authRoute'
 import { errorHandler } from './utils/errorHandler'
 import pinoHttp from 'pino-http'
 import logger from './utils/logger'
+import menuRoute from './routes/menuRoute'
 
 export const app: Application = express()
 
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: false }))
 
 app.use('/api/v1', authRoute)
 app.use('/api/v1', userRoute)
+app.use('/api/v1', menuRoute)
 
 app.use(errorHandler)
 

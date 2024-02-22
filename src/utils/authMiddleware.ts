@@ -8,6 +8,8 @@ export async function authMiddlerware(
     _res: Response,
     next: NextFunction,
 ) {
+    if (req.path === '/menus' && req.method === 'GET') return next()
+
     const token = req.headers.authorization?.split(' ')[1]
 
     try {
@@ -19,6 +21,7 @@ export async function authMiddlerware(
         next(error)
     }
 }
+
 export function generateToken(payload: Omit<IUser, 'password'>) {
     const token = jwt.sign(payload, process.env.SECRET_KEY as Secret, {
         expiresIn: process.env.JWT_EXPIRES,
