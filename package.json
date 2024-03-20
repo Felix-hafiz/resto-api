@@ -6,6 +6,7 @@
     "scripts": {
         "test": "jest",
         "lint": "eslint ./src/",
+        "lint:fix": "eslint --fix ./src/",
         "build": "tsc",
         "start": "node ./build/server.js",
         "dev": "nodemon ./src/server.ts"
