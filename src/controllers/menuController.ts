@@ -12,16 +12,18 @@ const menuPayloadSchema = z.object({
 
 export async function add(req: Request, res: Response, next: NextFunction) {
     try {
+        if (req.user.role !== 'ADMIN') throw new HttpError('Forbidden', 403)
+
         const menuPayload = menuPayloadSchema.parse(req.body)
 
         const data = await menuService.createMenu(menuPayload)
-        res.status(201).json(data)
+        res.status(201).json({ data: data })
     } catch (error) {
         next(error)
     }
 }
 
-export async function getAll(req: Request, res: Response, next: NextFunction) {
+export async function getAll(_req: Request, res: Response, next: NextFunction) {
     try {
         const data = await menuService.getAllMenus()
         res.json({ data })
@@ -32,9 +34,8 @@ export async function getAll(req: Request, res: Response, next: NextFunction) {
 
 export async function getOne(req: Request, res: Response, next: NextFunction) {
     try {
-        if (!req.params.id) throw new HttpError('ID Not Found', 404)
-
-        const data = await menuService.getMenu(req.params.id)
+        const menuId = req.params.id as string
+        const data = await menuService.getMenu(menuId)
         res.json({ data })
     } catch (error) {
         next(error)
@@ -43,11 +44,12 @@ export async function getOne(req: Request, res: Response, next: NextFunction) {
 
 export async function update(req: Request, res: Response, next: NextFunction) {
     try {
-        if (!req.params.id) throw new HttpError('ID Not Found', 404)
+        if (req.user.role !== 'ADMIN') throw new HttpError('Forbidden', 403)
 
         const menuPayload = menuPayloadSchema.partial().parse(req.body)
 
-        const data = await menuService.updateMenu(req.params.id, menuPayload)
+        const menuId = req.params.id as string
+        const data = await menuService.updateMenu(menuId, menuPayload)
         res.json({ data })
     } catch (error) {
         next(error)
@@ -56,9 +58,10 @@ export async function update(req: Request, res: Response, next: NextFunction) {
 
 export async function remove(req: Request, res: Response, next: NextFunction) {
     try {
-        if (!req.params.id) throw new HttpError('ID Not Found', 404)
+        if (req.user.role !== 'ADMIN') throw new HttpError('Forbidden', 403)
 
-        const data = await menuService.deleteMenu(req.params.id)
+        const menuId = req.params.id as string
+        const data = await menuService.deleteMenu(menuId)
         res.json({ data })
     } catch (error) {
         next(error)
