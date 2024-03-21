@@ -2,13 +2,15 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 import jwt, { JsonWebTokenError, Secret } from 'jsonwebtoken'
 import { NextFunction, Request, Response } from 'express'
+import { IUser } from '../models/userModel'
 
 export async function authMiddlerware(
     req: Request,
     _res: Response,
     next: NextFunction,
 ) {
-    if (req.path === '/menus' && req.method === 'GET') return next()
+    const exeptPath = /\/menus\/?.*/.exec(req.path)
+    if (req.method === 'GET' && req.path === exeptPath?.input) return next()
 
     const token = req.headers.authorization?.split(' ')[1]
 
