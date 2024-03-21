@@ -1,30 +1,33 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 
-import request from 'supertest'
+import request, { Response } from 'supertest'
 import { app } from '../app'
+import * as testUtils from './config/testUtils'
 
 const url = '/api/v1/users'
 let token: string
 let userId: string
+let customer: Response
 
 const usersBody = {
     name: 'hafiz',
-    email: process.env.ADMIN_EMAIL,
+    email: process.env.ADMIN_EMAIL as string,
     password: 'rahasia',
 }
 
 beforeAll(async () => {
-    await request(app)
-        .post('/api/v1/register')
-        .send({ name: 'udin', email: 'udin@gmail.com', password: '123' })
+    customer = await testUtils.addCustomerAccount('udin')
 
-    const user = await request(app).post('/api/v1/register').send(usersBody)
-    const res = await request(app)
-        .post('/api/v1/login')
-        .send({ email: usersBody.email, password: usersBody.password })
+    const res = await testUtils.loginUser(usersBody.email, usersBody.password)
+
     token = res.body.data.token
-    userId = user.body.data._id
+    userId = customer.body.data._id
+})
+
+afterAll(async () => {
+    //detele customer dummy account
+    await testUtils.deleteUserAccount(customer.body.data.email, token)
 })
 
 describe('Users Routes', () => {
@@ -39,7 +42,7 @@ describe('Users Routes', () => {
     it('should return authentication error message', async () => {
         const responseLogin = await request(app)
             .post('/api/v1/login')
-            .send({ email: 'udin@gmail.com', password: '123' })
+            .send({ email: 'udin@gmail.com', password: 'rahasia' })
 
         const token = responseLogin.body.data.token
 
@@ -60,7 +63,7 @@ describe('Single User Routes', () => {
         it('should return authentication error message', async () => {
             const responseLogin = await request(app)
                 .post('/api/v1/login')
-                .send({ email: 'udin@gmail.com', password: '123' })
+                .send({ email: 'udin@gmail.com', password: 'rahasia' })
 
             const token = responseLogin.body.data.token
 
@@ -172,6 +175,10 @@ describe('Single User Routes', () => {
             expect(res.statusCode).toEqual(200)
             expect(res.body.data.password).toBeUndefined()
             expect(res.body.data).toBeDefined()
+
+            //reset user
+            await testUtils.deleteUserAccount(customer.body.data.email, token)
+            await testUtils.addCustomerAccount('udin')
         })
 
         it('should return 404', async () => {
@@ -179,6 +186,7 @@ describe('Single User Routes', () => {
                 .put(`${url}/123456789012345678901234`)
                 .send({ name: 'changed name' })
                 .auth(token, { type: 'bearer' })
+
             expect(res.statusCode).toEqual(404)
             expect(res.body.error.message).toBeDefined()
         })
@@ -196,6 +204,48 @@ describe('Single User Routes', () => {
             expect(res.statusCode).toEqual(400)
             expect(res.body.error).toBeDefined()
         })
+
+        it('should return 403 if update not authorized', async () => {
+            const testUser = await testUtils.addCustomerAccount('test2')
+
+            const responseLogin = await testUtils.loginUser(
+                'udin@gmail.com',
+                'rahasia',
+            )
+
+            const customerToken = responseLogin.body.data.token
+
+            const res = await request(app)
+                .put(`${url}/${testUser.body.data._id}`)
+                .send({ name: 'changed', email: 'emailchanged@gmail.com' })
+                .auth(customerToken, { type: 'bearer' })
+
+            expect(res.statusCode).toEqual(403)
+            expect(res.body.error.message).toBeDefined()
+
+            await testUtils.deleteUserAccount(testUser.body.data._id, token)
+        })
+
+        it('should success update without admin role if user update its own account', async () => {
+            const testUser = await testUtils.addCustomerAccount('test2')
+            const userId = testUser.body.data._id
+            const responseLogin = await testUtils.loginUser(
+                'test2@gmail.com',
+                'rahasia',
+            )
+            const customerToken = responseLogin.body.data.token
+
+            const res = await request(app)
+                .put(`${url}/${userId}`)
+                .send({ name: 'changed', email: 'emailchanged@gmail.com' })
+                .auth(customerToken, { type: 'bearer' })
+
+            expect(res.statusCode).toEqual(200)
+            expect(res.body.data).toBeDefined()
+            expect(res.body.data.password).toBeUndefined()
+
+            await testUtils.deleteUserAccount(userId, customerToken)
+        })
     })
 
     describe('DELETE user', () => {
@@ -203,14 +253,53 @@ describe('Single User Routes', () => {
             const res = await request(app)
                 .delete(`${url}/123456789012345678901234`)
                 .auth(token, { type: 'bearer' })
+
             expect(res.statusCode).toEqual(404)
             expect(res.body.error.message).toBeDefined()
+        })
+
+        it('should return 403 if delete not authorized', async () => {
+            const testUser = await testUtils.addCustomerAccount('test2')
+
+            const responseLogin = await testUtils.loginUser(
+                'udin@gmail.com',
+                'rahasia',
+            )
+            const customerToken = responseLogin.body.data.token
+
+            const res = await request(app)
+                .delete(`${url}/${userId}`)
+                .auth(customerToken, { type: 'bearer' })
+
+            expect(res.statusCode).toEqual(403)
+            expect(res.body.error.message).toBeDefined()
+
+            await testUtils.deleteUserAccount(testUser.body.data._id, token)
         })
 
         it('should return success', async () => {
             const res = await request(app)
                 .delete(`${url}/${userId}`)
                 .auth(token, { type: 'bearer' })
+
+            expect(res.statusCode).toEqual(200)
+            expect(res.body.data).toBeUndefined()
+            expect(res.body.message).toBeDefined()
+        })
+
+        it('should success delete without admin role if user delete its own account', async () => {
+            const testUser = await testUtils.addCustomerAccount('test2')
+            const userId = testUser.body.data._id
+            const responseLogin = await testUtils.loginUser(
+                'test2@gmail.com',
+                'rahasia',
+            )
+            const customerToken = responseLogin.body.data.token
+
+            const res = await request(app)
+                .delete(`${url}/${userId}`)
+                .auth(customerToken, { type: 'bearer' })
+
             expect(res.statusCode).toEqual(200)
             expect(res.body.data).toBeUndefined()
             expect(res.body.message).toBeDefined()
