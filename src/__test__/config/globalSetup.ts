@@ -1,6 +1,7 @@
 import { MongoMemoryServer } from 'mongodb-memory-server'
 import mongoose from 'mongoose'
 import config from './config'
+import * as testUtils from './testUtils'
 
 export default async function globalSetup() {
     if (config.Memory) {
@@ -16,5 +17,6 @@ export default async function globalSetup() {
 
     await mongoose.connect(`${process.env.MONGODB_URI}/${config.Database}`)
     await mongoose.connection.dropDatabase()
+    await testUtils.addAdminAccount()
     await mongoose.disconnect()
 }
