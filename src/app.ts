@@ -6,6 +6,7 @@ import pinoHttp from 'pino-http'
 import logger from './utils/logger'
 import menuRoute from './routes/menuRoute'
 import helmet from 'helmet'
+import { rateLimit } from 'express-rate-limit'
 
 export const app: Application = express()
 
@@ -17,6 +18,15 @@ app.use(
 )
 
 app.use(helmet())
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+})
+
+app.use(limiter)
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
