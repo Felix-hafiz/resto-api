@@ -5,6 +5,7 @@ import { errorHandler } from './utils/errorHandler'
 import pinoHttp from 'pino-http'
 import logger from './utils/logger'
 import menuRoute from './routes/menuRoute'
+import helmet from 'helmet'
 
 export const app: Application = express()
 
@@ -14,6 +15,8 @@ app.use(
         autoLogging: process.env.NODE_ENV === 'test' ? false : true, // test is default env when running jest
     }),
 )
+
+app.use(helmet())
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
