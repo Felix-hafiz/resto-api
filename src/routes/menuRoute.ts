@@ -1,10 +1,10 @@
 import express from 'express'
-import { authMiddlerware } from '../utils/authMiddleware'
+import { authMiddleware } from '../utils/authMiddleware'
 import * as menuController from '../controllers/menuController'
 
 const router = express.Router()
 
-router.use(authMiddlerware)
+router.use(authMiddleware)
 router.route('/menus').get(menuController.getAll).post(menuController.add)
 
 router

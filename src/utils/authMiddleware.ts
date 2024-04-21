@@ -4,7 +4,7 @@ import jwt, { JsonWebTokenError, Secret } from 'jsonwebtoken'
 import { NextFunction, Request, Response } from 'express'
 import { IUser } from '../models/userModel'
 
-export async function authMiddlerware(
+export async function authMiddleware(
     req: Request,
     _res: Response,
     next: NextFunction,
