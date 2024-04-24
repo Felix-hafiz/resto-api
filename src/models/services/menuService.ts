@@ -1,12 +1,5 @@
-import menuModel from '../menuModel'
+import menuModel, { IMenu } from '../menuModel'
 import { HttpError } from '../../utils/errorHandler'
-
-interface IMenu {
-    name: string
-    description?: string
-    price: number
-    category: 'food' | 'drink'
-}
 
 export async function createMenu(payload: IMenu) {
     return await menuModel.create(payload)

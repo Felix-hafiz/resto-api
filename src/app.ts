@@ -7,6 +7,7 @@ import logger from './utils/logger'
 import menuRoute from './routes/menuRoute'
 import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
+import orderRoute from './routes/orderRoute'
 
 export const app: Application = express()
 
@@ -34,6 +35,7 @@ app.use(express.urlencoded({ extended: false }))
 app.use('/api/v1', authRoute)
 app.use('/api/v1', userRoute)
 app.use('/api/v1', menuRoute)
+app.use('/api/v1', orderRoute)
 
 app.use(errorHandler)
 

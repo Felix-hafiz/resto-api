@@ -1,5 +1,12 @@
 import mongoose from 'mongoose'
 
+export interface IMenu {
+    name: string
+    description?: string
+    price: number
+    category: 'food' | 'drink'
+}
+
 const menuSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -17,4 +24,4 @@ const menuSchema = new mongoose.Schema({
     },
 })
 
-export default mongoose.model('Menu', menuSchema)
+export default mongoose.model<IMenu>('Menu', menuSchema)
