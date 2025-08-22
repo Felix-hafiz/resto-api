@@ -25,9 +25,13 @@ export async function authMiddleware(
 }
 
 export function generateToken(payload: Omit<IUser, 'password'>) {
-    const token = jwt.sign(payload, process.env.SECRET_KEY as Secret, {
-        expiresIn: process.env.JWT_EXPIRES,
-    })
+    const token = jwt.sign(
+        payload,
+        process.env.SECRET_KEY as Secret,
+        {
+            expiresIn: process.env.JWT_EXPIRES,
+        } as jwt.SignOptions,
+    )
 
     if (!token) throw new JsonWebTokenError('Json web token failed')
     return token

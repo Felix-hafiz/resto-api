@@ -19,8 +19,9 @@ COPY --from=build /app/build ./build/
 ENV NODE_ENV=production
 
 #change ownership of log folder and limit permission
-RUN chown -R node:node ./log
-RUN chmod 600 ./log
+RUN mkdir -p ./log
+RUN chown -R node:node log
+RUN chmod 700 ./log
 
 USER node
 EXPOSE 3000

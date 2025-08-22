@@ -8,8 +8,12 @@ import menuRoute from './routes/menuRoute'
 import helmet from 'helmet'
 import { rateLimit } from 'express-rate-limit'
 import orderRoute from './routes/orderRoute'
+import cors from 'cors'
 
 export const app: Application = express()
+
+app.use(cors())
+app.options('*', cors())
 
 app.use(
     pinoHttp({

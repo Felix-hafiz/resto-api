@@ -9,7 +9,7 @@ import { IUser } from '../models/userModel'
 const userPayloadSchema = z.object({
     name: z.string(),
     email: z.string().email(),
-    password: z.string(),
+    password: z.string().min(8, 'password must be at least 8 characters long'),
 })
 
 export async function add(req: Request, res: Response, next: NextFunction) {
