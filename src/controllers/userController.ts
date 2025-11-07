@@ -1,8 +1,12 @@
 import { Request, Response, NextFunction } from 'express'
 import * as userService from '../models/services/userService'
 import { z } from 'zod'
+import * as jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
-import { generateToken } from '../utils/authMiddleware'
+import {
+    generateAccessToken,
+    generateRefreshToken,
+} from '../utils/authMiddleware'
 import { HttpError } from '../utils/errorHandler'
 import { IUser } from '../models/userModel'
 
@@ -112,9 +116,43 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
         if (!isValid) throw new HttpError('password wrong!!', 400)
 
-        const token = generateToken(user.$set('password', undefined).toObject())
+        const accessToken = generateAccessToken(
+            user.$set('password', undefined).toObject(),
+        )
 
-        res.json({ data: { token } })
+        const refreshToken = generateRefreshToken(
+            user.$set('password', undefined).toObject(),
+        )
+
+        res.json({ data: { accessToken, refreshToken } })
+    } catch (error) {
+        next(error)
+    }
+}
+
+export async function refresh(req: Request, res: Response, next: NextFunction) {
+    try {
+        const payload = z.object({ refreshToken: z.string() }).parse(req.body)
+
+        if (!payload) throw new HttpError('No refresh token', 401)
+
+        const decoded = jwt.verify(
+            payload.refreshToken,
+            process.env.REFRESH_TOKEN_SECRET_KEY as jwt.Secret,
+        )
+        if (typeof decoded !== 'object')
+            throw new HttpError('Invalid refresh token types', 401)
+
+        const user: { [key: string]: string } = {
+            _id: decoded._id,
+            email: decoded.email,
+            name: decoded.name,
+            role: decoded.role,
+        }
+
+        const accessToken = generateAccessToken(user)
+
+        res.json({ data: { accessToken } })
     } catch (error) {
         next(error)
     }

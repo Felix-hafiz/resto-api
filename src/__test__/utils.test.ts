@@ -9,10 +9,6 @@ jest.mock('bcrypt')
 jest.mock('jsonwebtoken')
 
 describe('Auth Route', () => {
-    afterEach(() => {
-        jest.restoreAllMocks()
-    })
-
     it('should throw error when brycpt fail', async () => {
         const hash = bcrypt.hash as jest.Mock
         hash.mockRejectedValue(new Error('Hashing failed'))
@@ -26,6 +22,8 @@ describe('Auth Route', () => {
         expect(res.statusCode).not.toEqual(201)
         expect(bcrypt.hash).toHaveBeenCalled()
         expect(res.statusCode).toEqual(500)
+
+        hash.mockRestore()
     })
 
     it('should throw error when json web token fail', async () => {
@@ -37,11 +35,11 @@ describe('Auth Route', () => {
         await request(app).post(`${url}register`).send({
             name: 'asep',
             email: 'alam@gmail.com',
-            password: 'test',
+            password: 'mustbe8char',
         })
         const res = await request(app).post(`${url}login`).send({
             email: 'alam@gmail.com',
-            password: 'test',
+            password: 'mustbe8char',
         })
 
         expect(res.statusCode).not.toEqual(200)

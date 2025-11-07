@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken'
 
 const url = '/api/v1/orders'
 
-let token: string
+let accessToken: string
 let menuId: string
 let customer: Response
 
@@ -14,10 +14,10 @@ beforeAll(async () => {
 
     const res = await testUtils.loginUser(
         process.env.ADMIN_EMAIL as string,
-        'rahasia',
+        'rahasia123',
     )
 
-    token = res.body.data.token
+    accessToken = res.body.data.accessToken
 
     const resMenu = await request(app)
         .post('/api/v1/menus')
@@ -26,14 +26,14 @@ beforeAll(async () => {
             price: 99999,
             category: 'food',
         })
-        .auth(token, { type: 'bearer' })
+        .auth(accessToken, { type: 'bearer' })
 
     menuId = resMenu.body.data._id
 })
 
 afterAll(async () => {
     //detele customer dummy account
-    await testUtils.deleteUserAccount(customer.body.data.email, token)
+    await testUtils.deleteUserAccount(customer.body.data.email, accessToken)
 })
 
 describe('Order Routes', () => {
@@ -53,10 +53,10 @@ describe('Order Routes', () => {
         it('should return 403 if user is not admin or not customer itself', async () => {
             const responseLoginCustomer = await testUtils.loginUser(
                 'orderCustomer1@gmail.com',
-                'rahasia',
+                'rahasia123',
             )
 
-            const tokenCustomer = responseLoginCustomer.body.data.token
+            const tokenCustomer = responseLoginCustomer.body.data.accessToken
 
             const res = await request(app)
                 .post(url)
@@ -106,7 +106,7 @@ describe('Order Routes', () => {
             async ({ orderItems, user }) => {
                 const res = await request(app)
                     .post(url)
-                    .auth(token, { type: 'bearer' })
+                    .auth(accessToken, { type: 'bearer' })
                     .send({
                         orderItems,
                         user,
@@ -120,7 +120,7 @@ describe('Order Routes', () => {
         it('should return 404 if menu not found', async () => {
             const res = await request(app)
                 .post(url)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
                 .send({
                     orderItems: [
                         {
@@ -138,11 +138,11 @@ describe('Order Routes', () => {
         it('should return 403 if customer make order for other customer', async () => {
             const responseLoginCustomer = await testUtils.loginUser(
                 'orderCustomer1@gmail.com',
-                'rahasia',
+                'rahasia123',
             )
 
-            const otherCustomer = jwt.decode(token) as jwt.JwtPayload
-            const tokenCustomer = responseLoginCustomer.body.data.token //current customer
+            const otherCustomer = jwt.decode(accessToken) as jwt.JwtPayload
+            const tokenCustomer = responseLoginCustomer.body.data.accessToken //current customer
             const res = await request(app)
                 .post(url)
                 .auth(tokenCustomer, { type: 'bearer' })
@@ -163,7 +163,7 @@ describe('Order Routes', () => {
         it('should return 201, when user is admin', async () => {
             const res = await request(app)
                 .post(url)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
                 .send({
                     orderItems: [
                         {
@@ -182,10 +182,10 @@ describe('Order Routes', () => {
         it('should return 201, when user order for himself even if user is not admin', async () => {
             const responseLoginCustomer = await testUtils.loginUser(
                 'orderCustomer1@gmail.com',
-                'rahasia',
+                'rahasia123',
             )
 
-            const tokenCustomer = responseLoginCustomer.body.data.token
+            const tokenCustomer = responseLoginCustomer.body.data.accessToken
 
             const res = await request(app)
                 .post(url)
@@ -216,10 +216,10 @@ describe('Order Routes', () => {
         it('should return 404, if user order not found', async () => {
             const responseLoginCustomer = await testUtils.loginUser(
                 'orderCustomer1@gmail.com',
-                'rahasia',
+                'rahasia123',
             )
 
-            const tokenCustomer = responseLoginCustomer.body.data.token
+            const tokenCustomer = responseLoginCustomer.body.data.accessToken
             const res = await request(app)
                 .get(`${url}/${orderId}`)
                 .auth(tokenCustomer, { type: 'bearer' })
@@ -231,7 +231,7 @@ describe('Order Routes', () => {
         it('should return 200 when user is admin', async () => {
             const res = await request(app)
                 .get(url)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.status).toBe(200)
             expect(res.body.data).toBeDefined()
@@ -240,7 +240,7 @@ describe('Order Routes', () => {
         it('should return 200, if customer order exist', async () => {
             const res = await request(app)
                 .get(`${url}/${orderId}`)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.status).toBe(200)
             expect(res.body.data).toBeDefined()

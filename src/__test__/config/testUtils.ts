@@ -5,7 +5,7 @@ export async function addCustomerAccount(customerName: string) {
     const customer = {
         name: customerName,
         email: `${customerName}@gmail.com`,
-        password: 'rahasia',
+        password: 'rahasia123',
     }
     return await request(app).post('/api/v1/register').send(customer)
 }
@@ -14,7 +14,7 @@ export async function addAdminAccount() {
     const admin = {
         name: 'admin',
         email: process.env.ADMIN_EMAIL,
-        password: 'rahasia',
+        password: 'rahasia123',
     }
     return await request(app).post('/api/v1/register').send(admin)
 }

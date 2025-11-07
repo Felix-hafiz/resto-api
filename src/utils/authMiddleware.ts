@@ -1,8 +1,7 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
-import jwt, { JsonWebTokenError, Secret } from 'jsonwebtoken'
+import jwt, { JsonWebTokenError, JwtPayload, Secret } from 'jsonwebtoken'
 import { NextFunction, Request, Response } from 'express'
-import { IUser } from '../models/userModel'
 
 export async function authMiddleware(
     req: Request,
@@ -16,7 +15,10 @@ export async function authMiddleware(
 
     try {
         if (!token) throw new JsonWebTokenError('No Authentication Header')
-        const decoded = jwt.verify(token, process.env.SECRET_KEY as Secret)
+        const decoded = jwt.verify(
+            token,
+            process.env.ACCESS_TOKEN_SECRET_KEY as Secret,
+        )
         req.user = decoded
         next()
     } catch (error) {
@@ -24,12 +26,25 @@ export async function authMiddleware(
     }
 }
 
-export function generateToken(payload: Omit<IUser, 'password'>) {
+export function generateAccessToken(payload: JwtPayload) {
     const token = jwt.sign(
         payload,
-        process.env.SECRET_KEY as Secret,
+        process.env.ACCESS_TOKEN_SECRET_KEY as Secret,
         {
-            expiresIn: process.env.JWT_EXPIRES,
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRES,
+        } as jwt.SignOptions,
+    )
+
+    if (!token) throw new JsonWebTokenError('Json web token failed')
+    return token
+}
+
+export function generateRefreshToken(payload: JwtPayload) {
+    const token = jwt.sign(
+        payload,
+        process.env.REFRESH_TOKEN_SECRET_KEY as Secret,
+        {
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRES,
         } as jwt.SignOptions,
     )
 

@@ -6,14 +6,14 @@ import { app } from '../app'
 import * as testUtils from './config/testUtils'
 
 const url = '/api/v1/users'
-let token: string
+let accessToken: string
 let userId: string
 let customer: Response
 
 const usersBody = {
     name: 'hafiz',
     email: process.env.ADMIN_EMAIL as string,
-    password: 'rahasia',
+    password: 'rahasia123',
 }
 
 beforeAll(async () => {
@@ -21,18 +21,20 @@ beforeAll(async () => {
 
     const res = await testUtils.loginUser(usersBody.email, usersBody.password)
 
-    token = res.body.data.token
+    accessToken = res.body.data.accessToken
     userId = customer.body.data._id
 })
 
 afterAll(async () => {
     //detele customer dummy account
-    await testUtils.deleteUserAccount(customer.body.data.email, token)
+    await testUtils.deleteUserAccount(customer.body.data.email, accessToken)
 })
 
 describe('Users Routes', () => {
     it('should return array of data even it empty', async () => {
-        const res = await request(app).get(url).auth(token, { type: 'bearer' })
+        const res = await request(app)
+            .get(url)
+            .auth(accessToken, { type: 'bearer' })
 
         expect(res.statusCode).toEqual(200)
         expect(res.body.data).toBeDefined()
@@ -40,19 +42,21 @@ describe('Users Routes', () => {
     })
 
     it('should return authentication error message', async () => {
-        const responseLogin = await request(app)
-            .post('/api/v1/login')
-            .send({ email: 'udin@gmail.com', password: 'rahasia' })
+        const responseLogin = await testUtils.loginUser(
+            'udin@gmail.com',
+            'rahasia123',
+        )
+        const accessToken = responseLogin.body.data.accessToken
 
-        const token = responseLogin.body.data.token
-
-        const res = await request(app).get(url).auth(token, { type: 'bearer' })
+        const res = await request(app)
+            .get(url)
+            .auth(accessToken, { type: 'bearer' })
 
         expect(res.statusCode).toEqual(403)
         expect(res.body.error.message).toBeDefined()
     })
 
-    it('should return Error when token not given', async () => {
+    it('should return Error when accessToken not given', async () => {
         const res = await request(app).get(url)
         expect(res.statusCode).toEqual(401)
     })
@@ -61,15 +65,15 @@ describe('Users Routes', () => {
 describe('Single User Routes', () => {
     describe('GET user', () => {
         it('should return authentication error message', async () => {
-            const responseLogin = await request(app)
-                .post('/api/v1/login')
-                .send({ email: 'udin@gmail.com', password: 'rahasia' })
-
-            const token = responseLogin.body.data.token
+            const responseLogin = await testUtils.loginUser(
+                'udin@gmail.com',
+                'rahasia123',
+            )
+            const accessToken = responseLogin.body.data.accessToken
 
             const res = await request(app)
                 .get(`${url}/${userId}`)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.statusCode).toEqual(403)
             expect(res.body.error.message).toBeDefined()
@@ -78,7 +82,7 @@ describe('Single User Routes', () => {
         it('should return single match object', async () => {
             const res = await request(app)
                 .get(`${url}/${userId}`)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.statusCode).toEqual(200)
             expect(res.body.data).toBeDefined()
@@ -89,7 +93,7 @@ describe('Single User Routes', () => {
         it('should return error not found users', async () => {
             const res = await request(app)
                 .get(`${url}/123456789012345678901234`)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
             expect(res.body.error).toBeDefined()
             expect(res.statusCode).toEqual(404)
         })
@@ -97,7 +101,7 @@ describe('Single User Routes', () => {
         it('should return error when id is not valid mongo id', async () => {
             const res = await request(app)
                 .get(`${url}/123`)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.body.error).toBeDefined()
             expect(res.statusCode).toEqual(404)
@@ -106,20 +110,20 @@ describe('Single User Routes', () => {
 
     describe('POST user', () => {
         it('should return 201', async () => {
-            const userBody = {
-                name: 'asep',
-                email: 'asep@gmail.com',
-                password: 'dsdsdsdsd',
-            }
-
             const res = await request(app)
                 .post(url)
-                .send(userBody)
-                .auth(token, { type: 'bearer' })
+                .send({
+                    name: 'asep',
+                    email: 'asep@gmail.com',
+                    password: 'dsdsdsdsd',
+                })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.body.data).toBeDefined()
             expect(res.body.data.password).toBeUndefined()
             expect(res.statusCode).toEqual(201)
+
+            await testUtils.deleteUserAccount(res.body.data._id, accessToken)
         })
 
         it.each([
@@ -136,7 +140,7 @@ describe('Single User Routes', () => {
                 const res = await request(app)
                     .post(url)
                     .send({ name, email, password })
-                    .auth(token, { type: 'bearer' })
+                    .auth(accessToken, { type: 'bearer' })
 
                 expect(res.body.error).toBeDefined()
                 expect(res.statusCode).toEqual(400)
@@ -147,7 +151,7 @@ describe('Single User Routes', () => {
             const res = await request(app)
                 .post(url)
                 .send(usersBody)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.body.error).toBeDefined()
             expect(res.statusCode).toEqual(400)
@@ -155,37 +159,45 @@ describe('Single User Routes', () => {
     })
 
     describe('PUT user', () => {
-        it.each([
-            { name: 'changed name' },
-            { email: 'hafizChange@gmail.com' },
-            { password: 'rahasisssaaaa' },
-            { name: 'changed name', email: 'hafizChange@gmail.com' },
-            {
-                name: 'changed name',
-                email: 'hafizChange@gmail.com',
-                password: 'rahasisaaaa',
-            },
-            { password: 'rahasisaaaa', email: 'hafizChange@gmail.com' },
-        ])('should return success', async ({ name, email, password }) => {
-            const res = await request(app)
-                .put(`${url}/${userId}`)
-                .send({ name, email, password })
-                .auth(token, { type: 'bearer' })
+        describe('update partial field', () => {
+            it.each([
+                { name: 'changed name' },
+                { email: 'hafizChange@gmail.com' },
+                { password: 'rahasisssaaaa' },
+                { name: 'changed name', email: 'hafizChange@gmail.com' },
+                {
+                    name: 'changed name',
+                    email: 'hafizChange@gmail.com',
+                    password: 'rahasisaaaa',
+                },
+                { password: 'rahasisaaaa', email: 'hafizChange@gmail.com' },
+            ])('should return success', async ({ name, email, password }) => {
+                const res = await request(app)
+                    .put(`${url}/${userId}`)
+                    .send({ name, email, password })
+                    .auth(accessToken, { type: 'bearer' })
 
-            expect(res.statusCode).toEqual(200)
-            expect(res.body.data.password).toBeUndefined()
-            expect(res.body.data).toBeDefined()
+                expect(res.statusCode).toEqual(200)
+                expect(res.body.data.password).toBeUndefined()
+                expect(res.body.data).toBeDefined()
+            })
 
-            //reset user
-            await testUtils.deleteUserAccount(customer.body.data.email, token)
-            await testUtils.addCustomerAccount('udin')
+            afterAll(async () => {
+                //reset user
+                await testUtils.deleteUserAccount(
+                    customer.body.data._id,
+                    accessToken,
+                )
+
+                await testUtils.addCustomerAccount('udin')
+            })
         })
 
         it('should return 404', async () => {
             const res = await request(app)
                 .put(`${url}/123456789012345678901234`)
                 .send({ name: 'changed name' })
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.statusCode).toEqual(404)
             expect(res.body.error.message).toBeDefined()
@@ -200,7 +212,8 @@ describe('Single User Routes', () => {
             const res = await request(app)
                 .put(`${url}/${userId}`)
                 .send({ name, email })
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
+
             expect(res.statusCode).toEqual(400)
             expect(res.body.error).toBeDefined()
         })
@@ -210,10 +223,10 @@ describe('Single User Routes', () => {
 
             const responseLogin = await testUtils.loginUser(
                 'udin@gmail.com',
-                'rahasia',
+                'rahasia123',
             )
 
-            const customerToken = responseLogin.body.data.token
+            const customerToken = responseLogin.body.data.accessToken
 
             const res = await request(app)
                 .put(`${url}/${testUser.body.data._id}`)
@@ -223,7 +236,10 @@ describe('Single User Routes', () => {
             expect(res.statusCode).toEqual(403)
             expect(res.body.error.message).toBeDefined()
 
-            await testUtils.deleteUserAccount(testUser.body.data._id, token)
+            await testUtils.deleteUserAccount(
+                testUser.body.data._id,
+                accessToken,
+            )
         })
 
         it('should success update without admin role if user update its own account', async () => {
@@ -231,9 +247,9 @@ describe('Single User Routes', () => {
             const userId = testUser.body.data._id
             const responseLogin = await testUtils.loginUser(
                 'test2@gmail.com',
-                'rahasia',
+                'rahasia123',
             )
-            const customerToken = responseLogin.body.data.token
+            const customerToken = responseLogin.body.data.accessToken
 
             const res = await request(app)
                 .put(`${url}/${userId}`)
@@ -252,7 +268,7 @@ describe('Single User Routes', () => {
         it('should return 404', async () => {
             const res = await request(app)
                 .delete(`${url}/123456789012345678901234`)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.statusCode).toEqual(404)
             expect(res.body.error.message).toBeDefined()
@@ -260,12 +276,13 @@ describe('Single User Routes', () => {
 
         it('should return 403 if delete not authorized', async () => {
             const testUser = await testUtils.addCustomerAccount('test2')
+            const userId = testUser.body.data._id
 
             const responseLogin = await testUtils.loginUser(
                 'udin@gmail.com',
-                'rahasia',
+                'rahasia123',
             )
-            const customerToken = responseLogin.body.data.token
+            const customerToken = responseLogin.body.data.accessToken
 
             const res = await request(app)
                 .delete(`${url}/${userId}`)
@@ -274,13 +291,16 @@ describe('Single User Routes', () => {
             expect(res.statusCode).toEqual(403)
             expect(res.body.error.message).toBeDefined()
 
-            await testUtils.deleteUserAccount(testUser.body.data._id, token)
+            await testUtils.deleteUserAccount(userId, accessToken)
         })
 
         it('should return success', async () => {
+            const testUser = await testUtils.addCustomerAccount('test2')
+            const userId = testUser.body.data._id
+
             const res = await request(app)
                 .delete(`${url}/${userId}`)
-                .auth(token, { type: 'bearer' })
+                .auth(accessToken, { type: 'bearer' })
 
             expect(res.statusCode).toEqual(200)
             expect(res.body.data).toBeUndefined()
@@ -292,9 +312,9 @@ describe('Single User Routes', () => {
             const userId = testUser.body.data._id
             const responseLogin = await testUtils.loginUser(
                 'test2@gmail.com',
-                'rahasia',
+                'rahasia123',
             )
-            const customerToken = responseLogin.body.data.token
+            const customerToken = responseLogin.body.data.accessToken
 
             const res = await request(app)
                 .delete(`${url}/${userId}`)
