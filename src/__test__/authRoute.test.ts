@@ -1,12 +1,13 @@
 import request from 'supertest'
 import { app } from '../app'
+import jwt from 'jsonwebtoken'
 
 const url = '/api/v1/'
 type TUSerPayload = Partial<Record<string, string>>
 const userPayload: TUSerPayload = {
     name: 'test',
     email: 'test@gmail.com',
-    password: 'test',
+    password: 'mustbe8char',
 }
 
 describe('Auth Route', () => {
@@ -51,18 +52,46 @@ describe('Auth Route', () => {
     it('should return error when login with false password', async () => {
         const res = await request(app)
             .post(url + 'login')
-            .send({ email: userPayload.email, password: 'salah' })
+            .send({
+                email: userPayload.email,
+                password: `${userPayload.password}wrong`,
+            })
 
         expect(res.status).toEqual(400)
         expect(res.body.error.message).toBeDefined()
     })
 
-    it('should return token when login', async () => {
+    it('should return accessToken and refreshToken when login', async () => {
         const res = await request(app)
             .post(url + 'login')
             .send(userPayload)
 
         expect(res.status).toEqual(200)
-        expect(res.body.data.token).toBeDefined()
+        expect(res.body.data.accessToken).toBeDefined()
+        expect(res.body.data.refreshToken).toBeDefined()
+    })
+
+    it('should return accessToken when refreshToken is valid', async () => {
+        jwt.verify = jest.fn().mockReturnValueOnce({ verify: 'success' })
+
+        const res = await request(app)
+            .post(url + 'refresh')
+            .send({
+                refreshToken: 'test',
+            })
+
+        expect(res.status).toEqual(200)
+        expect(res.body.data.accessToken).toBeDefined()
+    })
+
+    it('should return error when refreshToken is not valid', async () => {
+        const res = await request(app)
+            .post(url + 'refresh')
+            .send({
+                refreshToken: 'test',
+            })
+
+        expect(res.status).toEqual(401)
+        expect(res.body.error.message).toBeDefined()
     })
 })

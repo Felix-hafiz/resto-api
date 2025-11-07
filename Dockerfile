@@ -1,4 +1,4 @@
-FROM node:18.14.2-slim AS base
+FROM node:18.17.1-slim AS base
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
@@ -15,7 +15,14 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-l
 FROM base
 COPY --from=deps /app/node_modules ./node_modules/
 COPY --from=build /app/build ./build/
+
 ENV NODE_ENV=production
+
+#change ownership of log folder and limit permission
+RUN mkdir -p ./log
+RUN chown -R node:node log
+RUN chmod 700 ./log
+
 USER node
 EXPOSE 3000
 CMD [ "pnpm","start" ]

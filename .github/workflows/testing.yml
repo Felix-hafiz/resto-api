@@ -8,7 +8,8 @@ jobs:
   test:
     runs-on: ubuntu-20.04
     env:
-        JWT_EXPIRES: ${{vars.JWT_EXPIRES}}
+        ACCESS_TOKEN_EXPIRES: ${{vars.ACCESS_TOKEN_EXPIRES}}
+        REFRESH_TOKEN_EXPIRES: ${{vars.REFRESH_TOKEN_EXPIRES}}
         SECRET_KEY: ${{secrets.SECRET_KEY}}
         ADMIN_EMAIL: ${{secrets.ADMIN_EMAIL}}
     steps:
@@ -16,9 +17,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Install pnpm
-      uses: pnpm/action-setup@v2
+      uses: pnpm/action-setup@v4
       with:
-        version: 8
+        version: 10
 
     - name: Use Node.js 18
       uses: actions/setup-node@v3

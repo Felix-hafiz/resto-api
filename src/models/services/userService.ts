@@ -1,11 +1,11 @@
 import { HttpError } from '../../utils/errorHandler'
-import userModel from '../userModel'
+import userModel, { IUser } from '../userModel'
 
 export async function createUser(payload: IUser) {
     const data = await userModel.create(payload).catch((err) => {
         // duplicate key
         if (err.code === 11000) {
-            throw new HttpError('cannot create user: ' + err, 400)
+            throw new HttpError('Email already exists', 400)
         }
         throw new Error(err.message)
     })
@@ -46,12 +46,10 @@ export async function deleteUser(userId: string) {
     return { message: 'User Deleted!' }
 }
 
-export async function getUserByEmail(payload: Omit<IUser, 'name' | 'role'>) {
-    const user = await userModel
-        .findOne({ email: payload.email })
-        .select('+password')
+export async function getUserByEmail(payload: string) {
+    const user = await userModel.findOne({ email: payload }).select('+password')
 
-    if (!user) throw new HttpError(`user:${payload.email} Not Found!`, 404)
+    if (!user) throw new HttpError(`user: ${payload} Not Found!`, 404)
 
     return user
 }

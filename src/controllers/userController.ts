@@ -1,14 +1,19 @@
 import { Request, Response, NextFunction } from 'express'
 import * as userService from '../models/services/userService'
 import { z } from 'zod'
+import * as jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
-import { generateToken } from '../utils/authMiddleware'
+import {
+    generateAccessToken,
+    generateRefreshToken,
+} from '../utils/authMiddleware'
 import { HttpError } from '../utils/errorHandler'
+import { IUser } from '../models/userModel'
 
 const userPayloadSchema = z.object({
     name: z.string(),
     email: z.string().email(),
-    password: z.string(),
+    password: z.string().min(8, 'password must be at least 8 characters long'),
 })
 
 export async function add(req: Request, res: Response, next: NextFunction) {
@@ -43,9 +48,8 @@ export async function getAll(req: Request, res: Response, next: NextFunction) {
 export async function getUser(req: Request, res: Response, next: NextFunction) {
     try {
         if (req.user.role !== 'ADMIN') throw new HttpError('Forbidden', 403)
-        if (!req.params.id) throw new HttpError('ID Not Found', 404)
 
-        const data = await userService.getSingleUser(req.params.id)
+        const data = await userService.getSingleUser(req.params.id as string)
         res.json(data)
     } catch (error) {
         next(error)
@@ -56,9 +60,21 @@ export async function update(req: Request, res: Response, next: NextFunction) {
     try {
         const userPayload = userPayloadSchema.partial().parse(req.body)
 
-        if (!req.params.id) throw new HttpError('ID Not Found', 404)
+        if (req.user.role !== 'ADMIN') {
+            if (req.user._id === req.params.id) {
+                const data = await userService.updateUser(
+                    req.params.id as string,
+                    userPayload,
+                )
+                res.json(data)
+            }
+            throw new HttpError('Forbidden', 403)
+        }
 
-        const data = await userService.updateUser(req.params.id, userPayload)
+        const data = await userService.updateUser(
+            req.params.id as string,
+            userPayload,
+        )
 
         res.json(data)
     } catch (error) {
@@ -68,9 +84,17 @@ export async function update(req: Request, res: Response, next: NextFunction) {
 
 export async function remove(req: Request, res: Response, next: NextFunction) {
     try {
-        if (!req.params.id) throw new HttpError('ID Not Found', 404)
+        if (req.user.role !== 'ADMIN') {
+            if (req.user._id === req.params.id) {
+                const data = await userService.deleteUser(
+                    req.params.id as string,
+                )
+                res.json(data)
+            }
+            throw new HttpError('Forbidden', 403)
+        }
 
-        const data = await userService.deleteUser(req.params.id)
+        const data = await userService.deleteUser(req.params.id as string)
         res.json(data)
     } catch (error) {
         next(error)
@@ -83,7 +107,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
             .omit({ name: true })
             .parse(req.body)
 
-        const user = await userService.getUserByEmail(userPayload)
+        const user = await userService.getUserByEmail(userPayload.email)
 
         const isValid = await bcrypt.compare(
             userPayload.password,
@@ -92,9 +116,43 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
         if (!isValid) throw new HttpError('password wrong!!', 400)
 
-        const token = generateToken(user.$set('password', undefined).toObject())
+        const accessToken = generateAccessToken(
+            user.$set('password', undefined).toObject(),
+        )
 
-        res.json({ data: { token } })
+        const refreshToken = generateRefreshToken(
+            user.$set('password', undefined).toObject(),
+        )
+
+        res.json({ data: { accessToken, refreshToken } })
+    } catch (error) {
+        next(error)
+    }
+}
+
+export async function refresh(req: Request, res: Response, next: NextFunction) {
+    try {
+        const payload = z.object({ refreshToken: z.string() }).parse(req.body)
+
+        if (!payload) throw new HttpError('No refresh token', 401)
+
+        const decoded = jwt.verify(
+            payload.refreshToken,
+            process.env.REFRESH_TOKEN_SECRET_KEY as jwt.Secret,
+        )
+        if (typeof decoded !== 'object')
+            throw new HttpError('Invalid refresh token types', 401)
+
+        const user: { [key: string]: string } = {
+            _id: decoded._id,
+            email: decoded.email,
+            name: decoded.name,
+            role: decoded.role,
+        }
+
+        const accessToken = generateAccessToken(user)
+
+        res.json({ data: { accessToken } })
     } catch (error) {
         next(error)
     }
