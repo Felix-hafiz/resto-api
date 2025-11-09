@@ -6,11 +6,14 @@ on:
   
 jobs:
   test:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
         ACCESS_TOKEN_EXPIRES: ${{vars.ACCESS_TOKEN_EXPIRES}}
         REFRESH_TOKEN_EXPIRES: ${{vars.REFRESH_TOKEN_EXPIRES}}
-        SECRET_KEY: ${{secrets.SECRET_KEY}}
+
+        ACCESS_TOKEN_SECRET_KEY: ${{secrets.ACCESS_TOKEN_SECRET_KEY}}
+        REFRESH_TOKEN_SECRET_KEY: ${{secrets.REFRESH_TOKEN_SECRET_KEY}}
+
         ADMIN_EMAIL: ${{secrets.ADMIN_EMAIL}}
     steps:
     - name: Checkout
